@@ -55,3 +55,15 @@
 - **Alternatives:** monolithic "build then validate" — rejected; validation must gate the MVP, not trail it.
 - **Why:** per human direction to break engineering phases more granularly with validation inside the MVP.
 - **Vision impact:** none.
+
+## 2026-06-01 — Name re-verified after human pushback; `vramcheck` stands
+- **Decision:** Keep `vramcheck`. Human preferred `canirun` "if viable" and couldn't find it on pip, so we re-verified independently against the PyPI JSON API.
+- **Evidence:** `pypi.org/project/canirun/` → 200, `canirun` 1.0.1 (PythonicVarun, Jan 2026, "check if you can run a HF model locally"); GitHub `PythonicVarun/canirun` real (31 commits); `canirun.ai` live competitor. npm `canirun` free but irrelevant (Python package).
+- **Why:** Not just a name clash — a direct competitor in our exact niche/audience; using `canirun` would invite "isn't this just canirun?" and kill the adoption wedge.
+- **Vision impact:** flagged-to-human (brand). Vision unaffected.
+
+## 2026-06-01 — P1 core library: pure-Python + zero-install tests
+- **Decision:** Implement `core/` with no third-party deps (stdlib only); ship tests as stdlib `unittest`, runnable via `python3 -m unittest` (no pytest/network). Vendor model configs as plain dataclasses; live HF fetch deferred.
+- **Alternatives:** numpy/pydantic (needless weight); pytest (install friction for a zero-dep core); fetch HF configs at runtime now (network + gated-token friction).
+- **Why:** the core is simple arithmetic; minimal deps = lowest adoption friction and trivially testable in any environment.
+- **Vision impact:** none (serves standalone-first + adoption).

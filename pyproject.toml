@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "vramcheck"
+version = "0.1.0.dev0"
+description = "Know exactly what you can run before you rent a GPU — an accurate KV-cache / VRAM capacity planner."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "ayuan153" }]
+keywords = ["llm", "vram", "kv-cache", "vllm", "gpu", "capacity-planning", "paged-attention"]
+
+[project.urls]
+Homepage = "https://github.com/ayuan153/canirun"
+
+[tool.setuptools.packages.find]
+include = ["vramcheck*"]

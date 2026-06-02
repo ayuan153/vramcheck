@@ -40,7 +40,10 @@ it is flagged, not silently chosen.
 PyPI, confirm `vramcheck.dev` is registrable, and a quick trademark pass. Docs below use `vramcheck`.
 
 > Historical note: `canirun` was rejected because the PyPI name and `canirun.ai` are both taken by
-> directly competing in-niche tools — fatal confusion risk for an adoption-first launch.
+> directly competing in-niche tools — fatal confusion risk for an adoption-first launch. Re-verified
+> 2026-06-01 against the PyPI JSON API: `canirun` 1.0.1 (PythonicVarun, Jan 2026, "check if you can
+> run a HF model locally") is live, and `canirun.ai` is a working competitor. npm `canirun` is free
+> but irrelevant — this is a Python/pip package.
 
 ---
 
