@@ -1,0 +1,8 @@
+.builder-mcp/
+__pycache__/
+*.pyc
+.venv/
+dist/
+build/
+*.egg-info/
+packageInfo
