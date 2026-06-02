@@ -42,6 +42,39 @@ def kv_capacity_tokens(num_gpu_blocks: int, block_size: int = 16) -> int:
     return num_gpu_blocks * block_size
 
 
+# vLLM's startup "Memory profiling results" line reports these directly (wording varies by
+# version, so the regexes are tolerant). Each returns GiB or None when absent.
+_F = r"([\d.]+)"
+_WEIGHT_PATTERNS = [re.compile(r"model weights take\s*" + _F + r"\s*GiB", re.IGNORECASE)]
+_ACT_PATTERNS = [re.compile(r"activation peak memory takes\s*" + _F + r"\s*GiB", re.IGNORECASE)]
+_NONTORCH_PATTERNS = [re.compile(r"non[_-]?torch[\w ]{0,16}?takes\s*" + _F + r"\s*GiB", re.IGNORECASE)]
+_KVRES_PATTERNS = [re.compile(r"reserved for KV Cache is\s*" + _F + r"\s*GiB", re.IGNORECASE)]
+
+
+def _first_float(patterns, text: str) -> Optional[float]:
+    for p in patterns:
+        m = p.search(text)
+        if m:
+            return float(m.group(1))
+    return None
+
+
+def parse_weight_gib(text: str) -> Optional[float]:
+    return _first_float(_WEIGHT_PATTERNS, text)
+
+
+def parse_activation_gib(text: str) -> Optional[float]:
+    return _first_float(_ACT_PATTERNS, text)
+
+
+def parse_nontorch_gib(text: str) -> Optional[float]:
+    return _first_float(_NONTORCH_PATTERNS, text)
+
+
+def parse_kv_reserved_gib(text: str) -> Optional[float]:
+    return _first_float(_KVRES_PATTERNS, text)
+
+
 def error_pct(predicted: float, measured: float) -> float:
     return abs(predicted - measured) / measured * 100.0 if measured else float("inf")
 

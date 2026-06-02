@@ -6,6 +6,7 @@ from validate import calibrate
 from validate.parse import (
     parse_gpu_blocks, parse_kv_cache_tokens, kv_capacity_tokens,
     error_pct, fit_activation_overhead,
+    parse_weight_gib, parse_activation_gib, parse_nontorch_gib, parse_kv_reserved_gib,
 )
 from vramcheck import core
 
@@ -24,6 +25,17 @@ class TestParse(unittest.TestCase):
         self.assertEqual(kv_capacity_tokens(100, 16), 1600)
         self.assertAlmostEqual(error_pct(54, 60), 10.0)
         self.assertEqual(error_pct(5, 0), float("inf"))
+
+
+    def test_parse_memory_profile_fields(self):
+        line = ("Memory profiling results: total=79.21GiB model weights take 14.99GiB; "
+                "non_torch_memory takes 0.12GiB; PyTorch activation peak memory takes 1.20GiB; "
+                "the rest of the memory reserved for KV Cache is 56.34 GiB")
+        self.assertAlmostEqual(parse_weight_gib(line), 14.99)
+        self.assertAlmostEqual(parse_activation_gib(line), 1.20)
+        self.assertAlmostEqual(parse_nontorch_gib(line), 0.12)
+        self.assertAlmostEqual(parse_kv_reserved_gib(line), 56.34)
+        self.assertIsNone(parse_weight_gib("nothing here"))
 
 
 class TestFit(unittest.TestCase):

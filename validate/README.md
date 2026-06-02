@@ -13,7 +13,10 @@ and reports predicted-vs-measured error. Ship gate: **≤10% (stretch ≤5%)** o
 vLLM profiles each model at startup and fixes `# GPU blocks` — a **crash-free** measurement of the
 KV budget. We read it (engine API, falling back to parsing the startup log), convert to bytes via
 `core.per_token_kv_bytes`, and recover the true `activation + overhead = usable − weights − KV`.
-A 2-parameter least-squares fit across the 5 models gives the calibrated defaults.
+A 2-parameter least-squares fit across the 5 models gives the calibrated defaults. When vLLM logs
+its "Memory profiling results" (model weights / activation / non-torch / KV reserved), the harness
+uses those **measured** values directly instead of approximate `num_params`, and prints suggested
+`num_params` corrections for `vramcheck/core/models.py`.
 
 ## Prerequisites (on the rented box)
 - 1× **A100-80GB** (cloud rental; no purchase). ~$10–20, a couple of hours.

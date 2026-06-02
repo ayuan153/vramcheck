@@ -23,23 +23,33 @@ def _capacity_tokens(row: dict):
 
 
 def analyze(rows: list[dict]):
-    """Returns (act_fraction, overhead_bytes, enriched_rows). Each enriched row carries the
-    measured KV budget, usable bytes, weights, and the recovered nonkv (= activation + overhead)."""
+    """Returns (act_fraction, overhead_bytes, enriched_rows). Prefers vLLM's measured
+    memory-profile fields (weights / activation / non-torch / KV reserved) when present;
+    otherwise falls back to num_params-derived weights and KV-by-subtraction."""
     samples, enriched = [], []
     for r in rows:
-        tokens = _capacity_tokens(r)
-        if r.get("error") or tokens is None:
+        if r.get("error"):
             continue
         cfg = core.MODELS[r["key"]]
         per_token = core.per_token_kv_bytes(cfg, r["kv_dtype"])
-        measured_kv = tokens * per_token
+        tokens = _capacity_tokens(r)
+        if r.get("kv_reserved_gib"):          # vLLM's directly-reported KV budget
+            measured_kv = r["kv_reserved_gib"] * core.GiB
+        elif tokens is not None:              # else derive from # GPU blocks
+            measured_kv = tokens * per_token
+        else:
+            continue
         total = r.get("total_gpu_memory_bytes")
         usable = r["util"] * total if total else core.usable_bytes(core.GPUS["a100-80gb"], r["util"])
-        weights = core.weight_bytes(cfg, r["weight_dtype"])
-        nonkv = usable - weights - measured_kv
+        core_weight = core.weight_bytes(cfg, r["weight_dtype"])
+        weights = r["weight_gib"] * core.GiB if r.get("weight_gib") else core_weight
+        if r.get("activation_gib") is not None and r.get("nontorch_gib") is not None:
+            nonkv = (r["activation_gib"] + r["nontorch_gib"]) * core.GiB  # measured directly
+        else:
+            nonkv = usable - weights - measured_kv                        # inferred
         samples.append((weights, nonkv))
-        enriched.append({"cfg": cfg, "row": r, "measured_kv": measured_kv,
-                         "usable": usable, "weights": weights, "nonkv": nonkv})
+        enriched.append({"cfg": cfg, "row": r, "measured_kv": measured_kv, "usable": usable,
+                         "weights": weights, "core_weight": core_weight, "nonkv": nonkv})
     act_fraction, overhead = fit_activation_overhead(samples)
     return act_fraction, overhead, enriched
 
@@ -71,7 +81,21 @@ def main(argv=None) -> int:
         pred_mb = max(0, int(budget // per_seq))
         print(f"{cfg.name:<24}{e['measured_kv'] / core.GiB:>16.2f}"
               f"{pred_mb:>11}{meas_mb:>11}{error_pct(pred_mb, meas_mb):>8.1f}")
-    print(f"\nApply: set the two defaults in vramcheck/core/memory.py, then re-run the unit tests.")
+
+    # When vLLM reported real weight memory, suggest exact num_params for core/models.py.
+    corrections = []
+    for e in enriched:
+        if e["row"].get("weight_gib"):
+            implied = int(round(e["weights"] / core.DTYPE_BYTES[e["row"]["weight_dtype"]]))
+            if e["cfg"].num_params and abs(implied - e["cfg"].num_params) / e["cfg"].num_params > 0.01:
+                corrections.append((e["cfg"].name, e["cfg"].num_params, implied))
+    if corrections:
+        print("\nmodels.py num_params corrections (measured vs current, >1% off):")
+        for name, cur, implied in corrections:
+            print(f"  {name:<24} {cur:,} -> {implied:,}")
+
+    print(f"\nApply: set the two defaults in vramcheck/core/memory.py (+ any num_params above), "
+          f"then re-run the unit tests.")
     return 0
 
 

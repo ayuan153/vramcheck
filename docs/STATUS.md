@@ -4,12 +4,12 @@
 
 **NEXT:** **P3 — run the validation harness** (built + ready in `validate/`). Needs the infra:
 rent A100-80GB + HF token (we'll walk through together), then `python -m validate.run` →
-`python -m validate.calibrate`. P1+P2+P4 + P3-harness done; 27/27 tests green.
+`python -m validate.calibrate`. P1+P2+P4 + P3-harness done; 28/28 tests green.
 
 ---
 
 ## Where we are
-- **Phase:** P1 + P2 + P4 + P3-harness **complete — 27/27 tests green.** Next: run P3 on a rented A100-80GB.
+- **Phase:** P1 + P2 + P4 + P3-harness **complete — 28/28 tests green.** Next: run P3 on a rented A100-80GB.
 - **North star (restated):** know exactly what you can run before you rent a GPU — predicted-vs-actual
   OOM within ≤10% (stretch ≤5%) for the 5 v0.1 models (4 GQA + 1 MLA) on one A100-80GB.
 
@@ -52,11 +52,13 @@ rent A100-80GB + HF token (we'll walk through together), then `python -m validat
   but not E2E-tested here (needs a browser + CDN). Design: `docs/web.md`.
 
 ## Done — P3 harness (2026-06-01)
-- `validate/`: `parse.py` (log/budget/fit, pure), `config.py` (HF ids + vLLM kwargs; 70B→AWQ-int4),
-  `run.py` (lazy-vLLM: measures `# GPU blocks` per model → `results.json`), `calibrate.py` (fits
-  activation+overhead, prints predicted-vs-measured table + suggested core defaults). `validate/README.md`.
+- `validate/`: `parse.py` (log/budget/fit + vLLM memory-profile field parsers, pure), `config.py`
+  (HF ids + vLLM kwargs; 70B→AWQ-int4), `run.py` (lazy-vLLM: measures `# GPU blocks` **and** vLLM's
+  reported weights/activation/non-torch/KV-reserved → `results.json`), `calibrate.py` (prefers those
+  measured values over approximate `num_params`, fits activation+overhead, prints predicted-vs-measured
+  table + suggested core defaults **and num_params corrections**). `validate/README.md`.
 - GPU code isolated to `run.py` (lazy import); pure logic unit-tested off-GPU — `tests/test_validate.py`
-  (6 tests). Calibrate demonstrated end-to-end on synthetic data. **Ready to run; not yet run** (needs GPU).
+  (7 tests). Calibrate demonstrated end-to-end on synthetic data. **Ready to run; not yet run** (needs GPU).
 - ⚠️ 70B fp16 can't load on one 80GB GPU → validated AWQ-int4; confirm repo during infra setup.
 
 ## Decisions locked (2026-06-01)
@@ -75,5 +77,5 @@ rent A100-80GB + HF token (we'll walk through together), then `python -m validat
 - **P5:** publish to PyPI + broadcast.
 
 ## Repo state
-- Working state: P1 core + P2 CLI + P4 web + P3 harness; 27/27 tests green. Docs under `docs/`. Git: P3-harness pushed.
+- Working state: P1 core + P2 CLI + P4 web + P3 harness; 28/28 tests green. Docs under `docs/`. Git: P3-harness pushed.
 - Remote: `github.com/ayuan153/canirun`. Package / CLI / domain = `vramcheck`.

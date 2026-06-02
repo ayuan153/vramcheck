@@ -97,3 +97,9 @@
 - **Alternatives:** drop 70B from single-GPU validation (weaker coverage); multi-GPU (out of v0.1 scope).
 - **Why:** keeps the single-GPU constraint while still validating the 70B GQA path.
 - **Vision impact:** flagged-to-human — confirm exact repo/quant during infra setup.
+
+## 2026-06-01 — Calibration uses vLLM's measured memory profile (not approximate num_params)
+- **Decision:** The harness parses vLLM's startup "Memory profiling results" (model weights / activation peak / non-torch / KV reserved) and uses those measured values in calibration when present, falling back to `# GPU blocks` + num_params-derived weights otherwise. It also emits suggested `num_params` corrections for `core/models.py` when measured weights differ >1% from the vendored count.
+- **Alternatives:** keep using approximate vendored `num_params` and infer everything by subtraction (the approximate weights leak into the fitted activation/overhead); fetch exact param counts from HF up front (more work, still not the resident-memory truth incl. quant overhead).
+- **Why:** the one non-by-design placeholder left was approximate `num_params`; using vLLM's own measured numbers removes it from the accuracy path and self-corrects the vendored configs.
+- **Vision impact:** none (strengthens the north-star proof; correctness is the credibility).

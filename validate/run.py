@@ -21,7 +21,10 @@ import logging
 import sys
 
 from . import config
-from .parse import parse_gpu_blocks, parse_kv_cache_tokens
+from .parse import (
+    parse_gpu_blocks, parse_kv_cache_tokens,
+    parse_weight_gib, parse_activation_gib, parse_nontorch_gib, parse_kv_reserved_gib,
+)
 
 
 def _num_gpu_blocks(llm) -> int | None:
@@ -76,6 +79,11 @@ def measure(target: config.Target, util: float, max_model_len: int = 8192,
         "util": util, "block_size": block_size,
         "num_gpu_blocks": blocks,
         "kv_tokens": parse_kv_cache_tokens(log),
+        # vLLM's own memory profiler (when present) — measured, not inferred:
+        "weight_gib": parse_weight_gib(log),
+        "activation_gib": parse_activation_gib(log),
+        "nontorch_gib": parse_nontorch_gib(log),
+        "kv_reserved_gib": parse_kv_reserved_gib(log),
         "total_gpu_memory_bytes": _total_gpu_memory_bytes(),
     }
 

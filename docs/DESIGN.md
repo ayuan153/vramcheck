@@ -174,6 +174,9 @@ crash-free measurement of `usable_VRAM − weights − activation_peak − overh
 Cost: a few GPU-hours on a spot/community instance (one A100-80GB or one 4090). No sibling tool
 required; an external load tester *may* corroborate but is never needed. Implemented as the
 ready-to-run `validate/` harness (`run.py` measures `# GPU blocks`; `calibrate.py` fits the knobs).
+When vLLM logs its memory profile, the harness uses those **measured** weights / activation /
+non-torch / KV-reserved values directly (not approximate `num_params`) and emits suggested
+`num_params` corrections for `core/models.py`.
 
 ---
 
