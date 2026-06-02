@@ -67,3 +67,15 @@
 - **Alternatives:** numpy/pydantic (needless weight); pytest (install friction for a zero-dep core); fetch HF configs at runtime now (network + gated-token friction).
 - **Why:** the core is simple arithmetic; minimal deps = lowest adoption friction and trivially testable in any environment.
 - **Vision impact:** none (serves standalone-first + adoption).
+
+## 2026-06-01 — Design documentation consolidated under docs/
+- **Decision:** Move the spine (VISION/DESIGN/STATUS/DECISIONS/AGENT-CONVENTIONS) into `docs/`; `README.md` stays at root as the GitHub front door; per-component design docs (e.g. `docs/cli.md`) live in `docs/` too.
+- **Alternatives:** keep everything at root (cluttered); split design vs. logs across root and docs/ (inconsistent).
+- **Why:** human asked to keep design documentation in `docs/`; siblings keep cross-references intact.
+- **Vision impact:** none.
+
+## 2026-06-01 — P2 CLI uses stdlib argparse (Rich/Typer deferred)
+- **Decision:** Build the CLI with stdlib `argparse` + a plain-text table; no runtime dependencies. Rich/Typer deferred to launch polish as an optional `[pretty]` extra. Revises the DESIGN §7 "Typer + Rich" choice.
+- **Alternatives:** Typer + Rich now (2 deps + install/network friction, not testable in a bare env); argparse + Rich (1 cosmetic dep).
+- **Why:** adoption-first — `pip install vramcheck` pulls zero transitive deps and the CLI runs/tests anywhere; the product is the accurate number + table, not box-drawing. Presentation-only, reversible.
+- **Vision impact:** none (serves adoption + standalone-first).

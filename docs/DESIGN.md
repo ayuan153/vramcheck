@@ -234,19 +234,21 @@ required; an external load tester *may* corroborate but is never needed.
 
 ```
 vramcheck/
-├─ core/                      # pure-Python memory model — the single source of truth
-│  ├─ models.py               # supported-model configs (vendored snapshot) + HF fetch fallback
-│  ├─ gpus.py                 # GPU VRAM table (nominal + usable + util default)
+├─ core/                      # pure-Python memory model — the single source of truth (zero deps)
+│  ├─ models.py               # vendored model configs (HF fetch fallback later)
+│  ├─ gpus.py                 # GPU VRAM table (nominal + util default)
 │  ├─ kv.py                   # MHA/GQA/MQA + MLA KV math, PagedAttention rounding
-│  ├─ memory.py               # weights + activation + overhead + KV → budget, max_batch, OOM line
-│  └─ report.py               # breakdown + sweep table data structures
-├─ cli/                       # thin CLI over core (Typer + Rich tables)
-└─ web/                       # one-page tool; runs core in-browser via Pyodide (single source of truth)
+│  └─ memory.py               # weights + activation + overhead + KV → budget, max_batch, fits, sweep
+├─ report.py                  # plain-text formatting (breakdown + sweep table)
+├─ cli.py                     # thin argparse CLI over core (verdict / max-batch / sweep / --json)
+├─ __main__.py                # python3 -m vramcheck
+└─ web/                       # (P4) one-page Pyodide tool reusing core (single source of truth)
 ```
 
 **Decisions (minor, recorded in DECISIONS.md):**
 - **Language: Python.** Audience is Python-native; lowest adoption friction; reuses `huggingface_hub`.
-- **CLI:** Typer + Rich (clean tables/colors for the screenshot that sells the launch).
+- **CLI:** stdlib `argparse` + plain-text tables — **zero runtime deps** (revised from Typer+Rich;
+  see `docs/cli.md`). Rich color/box output deferred to launch polish as an optional `[pretty]` extra.
 - **Web (single source of truth):** static one-page site that loads the *same* Python core via
   **Pyodide**, hosted free on GitHub Pages — no server, no API keys, and the web number can never
   drift from the CLI number. (Alternative: port math to JS — rejected, risks divergence; or a tiny

@@ -15,5 +15,8 @@ keywords = ["llm", "vram", "kv-cache", "vllm", "gpu", "capacity-planning", "page
 [project.urls]
 Homepage = "https://github.com/ayuan153/canirun"
 
+[project.scripts]
+vramcheck = "vramcheck.cli:main"
+
 [tool.setuptools.packages.find]
 include = ["vramcheck*"]

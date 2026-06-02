@@ -2,13 +2,13 @@
 
 > Update this **every** session (END ritual). One clear `NEXT:` line at the top.
 
-**NEXT:** **P2 — CLI** (Typer + Rich over `core/`): verdict + breakdown + max-batch@ctx + OOM line +
-sweep table + `--json`. P1 core library is done (12/12 unit tests green).
+**NEXT:** **P3 — validation (MVP accuracy gate)** needs a rented A100-80GB + HF token (human action).
+**P4 — web** (Pyodide one-pager) can proceed independently since it just wraps `core/`. P1+P2 done; 21/21 tests green.
 
 ---
 
 ## Where we are
-- **Phase:** P1 (core memory-model library) **complete — 12/12 tests green.** Next: P2 (CLI).
+- **Phase:** P1 + P2 **complete — 21/21 tests green.** Next: P3 (validation, needs GPU) or P4 (web).
 - **North star (restated):** know exactly what you can run before you rent a GPU — predicted-vs-actual
   OOM within ≤10% (stretch ≤5%) for the 5 v0.1 models (4 GQA + 1 MLA) on one A100-80GB.
 
@@ -35,6 +35,13 @@ sweep table + `--json`. P1 core library is done (12/12 unit tests green).
   B/token, block-16 rounding, fp8=½fp16, budget/max_batch=54, OOM→0.
 - activation (10% of weights) + overhead (1 GiB) are placeholders flagged for P3 calibration.
 
+## Done — P2 CLI (2026-06-01)
+- `vramcheck/cli.py` (argparse, thin presenter over `core/`) + `report.py` (plain-text formatting)
+  + `__main__.py` (`python3 -m vramcheck`). console_scripts entry point `vramcheck` in pyproject.
+- Modes: `--list`; sweep table (default); max-batch (`--ctx`); fits/OOM verdict (`--ctx` + `--batch`);
+  `--json` for all. Zero runtime deps (Rich/Typer deferred — see DECISIONS).
+- `tests/test_cli.py`: 9 smoke tests; suite now **21/21 green**. Design: `docs/cli.md`.
+
 ## Decisions locked (2026-06-01)
 1. **Name:** `vramcheck` (re-verify PyPI / domain / trademark before publish).
 2. **Web:** Pyodide single-source on GitHub Pages.
@@ -43,11 +50,11 @@ sweep table + `--json`. P1 core library is done (12/12 unit tests green).
 
 ## Next actions (granular phases — see DESIGN §11)
 - ✅ **P1 done:** core library + 12 unit tests green.
-- **P2 (next):** Typer + Rich CLI over `core/`; verdict + breakdown + sweep table + `--json`.
-- **P3 (MVP accuracy gate):** rent A100-80GB; vLLM `# GPU blocks` + OOM search; fill §6 table for all
-  5 models; calibrate activation `k` + overhead. Gate ≤10% (stretch ≤5%).
-- **P4:** Pyodide web one-pager on GitHub Pages. **P5:** publish to PyPI + broadcast.
+- ✅ **P2 done:** argparse CLI (verdict / max-batch / sweep / --json) + 9 tests; `docs/cli.md`.
+- **P3 (MVP accuracy gate, needs human):** rent A100-80GB + HF token; vLLM `# GPU blocks` + OOM
+  search; fill §6 table for all 5 models; calibrate activation `k` + overhead. Gate ≤10% (stretch ≤5%).
+- **P4 (can run now):** Pyodide web one-pager on GitHub Pages reusing `core/`. **P5:** publish + broadcast.
 
 ## Repo state
-- Working state: P1 core library + tests (green). Git: P1 checkpoint committed + pushed.
+- Working state: P1 core + P2 CLI, 21/21 tests green. Docs spine under `docs/`. Git: P2 checkpoint pushed.
 - Remote: `github.com/ayuan153/canirun`. Package / CLI / domain = `vramcheck`.
