@@ -10,8 +10,8 @@ Unlike basic VRAM calculators, `vramcheck` models what actually moves the number
 GQA/MQA/MLA attention variants, PagedAttention block rounding, activation and CUDA
 overhead — not just `params × 2`.
 
-> Status: **early development (v0.1).** See [`DESIGN.md`](DESIGN.md) for the locked scope,
-> the memory model, and the validation plan, and [`VISION.md`](VISION.md) for the arc.
+> Status: **early development (v0.1).** See [`docs/DESIGN.md`](docs/DESIGN.md) for the locked scope,
+> the memory model, and the validation plan, and [`docs/VISION.md`](docs/VISION.md) for the arc.
 
 ## v0.1 supported set
 - Models: Llama-3.1-8B/70B, Mistral-7B, Qwen2.5-32B, DeepSeek-V2-Lite (MLA)

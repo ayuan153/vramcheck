@@ -7,6 +7,10 @@ This project will span many sessions and many agents. Continuity comes from a sm
 set of living documents, not from memory. These conventions keep the repo coherent
 and never broken.
 
+> **Location:** the spine lives in `docs/` (this file, `VISION.md`, `DESIGN.md`, `STATUS.md`,
+> `DECISIONS.md`). The root `README.md` is the public front door. Detailed per-component design
+> docs also go in `docs/` (e.g. `docs/cli.md`).
+
 ---
 
 ## The documentation spine
