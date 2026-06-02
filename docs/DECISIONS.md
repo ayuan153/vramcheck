@@ -85,3 +85,15 @@
 - **Alternatives:** JS reimplementation (divergence risk); micropip-install a published wheel (needs publish + build); serverless API (cost + infra).
 - **Why:** guarantees the web numbers equal the CLI numbers (single source of truth) with zero backend.
 - **Vision impact:** none (implements locked DESIGN §7).
+
+## 2026-06-01 — P3 harness: crash-free KV-budget measurement, GPU code isolated
+- **Decision:** Validate via vLLM's startup `# GPU blocks` (crash-free KV-budget ground truth) instead of OOM-crashing; isolate all GPU/vLLM/torch code to `validate/run.py` (lazy imports) so parsing + calibration unit-test off-GPU. Recover activation+overhead per model, least-squares fit, and reconcile GPU capacity from measured `total_gpu_memory_bytes`.
+- **Alternatives:** OOM binary-search as primary (slower, wasteful, flaky); top-level `import vllm` (breaks off-GPU testing).
+- **Why:** fastest, cheapest path to the ≤10% gate; harness stays verifiable now (27/27 tests).
+- **Vision impact:** none (serves the north-star proof).
+
+## 2026-06-01 — 70B validated quantized on a single GPU
+- **Decision:** Validate Llama-3.1-70B as AWQ-int4 (~35 GB) on one A100-80GB; fp16 (~141 GB) cannot load there. core predicts with weight_dtype=int4 to match.
+- **Alternatives:** drop 70B from single-GPU validation (weaker coverage); multi-GPU (out of v0.1 scope).
+- **Why:** keeps the single-GPU constraint while still validating the 70B GQA path.
+- **Vision impact:** flagged-to-human — confirm exact repo/quant during infra setup.

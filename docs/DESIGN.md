@@ -172,7 +172,8 @@ crash-free measurement of `usable_VRAM − weights − activation_peak − overh
 5. Repeat at 2-3 context lengths per model.
 
 Cost: a few GPU-hours on a spot/community instance (one A100-80GB or one 4090). No sibling tool
-required; an external load tester *may* corroborate but is never needed.
+required; an external load tester *may* corroborate but is never needed. Implemented as the
+ready-to-run `validate/` harness (`run.py` measures `# GPU blocks`; `calibrate.py` fits the knobs).
 
 ---
 

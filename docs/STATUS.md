@@ -2,13 +2,14 @@
 
 > Update this **every** session (END ritual). One clear `NEXT:` line at the top.
 
-**NEXT:** **P3 — validation (MVP accuracy gate)** is the remaining blocker to launch and needs a
-rented A100-80GB + HF token (human action). P1+P2+P4 done; CLI + web both ride the same `core/` (21/21 tests green).
+**NEXT:** **P3 — run the validation harness** (built + ready in `validate/`). Needs the infra:
+rent A100-80GB + HF token (we'll walk through together), then `python -m validate.run` →
+`python -m validate.calibrate`. P1+P2+P4 + P3-harness done; 27/27 tests green.
 
 ---
 
 ## Where we are
-- **Phase:** P1 + P2 + P4 **complete — 21/21 tests green; web verified (served files + math mirror).** Next: P3 (validation, needs GPU).
+- **Phase:** P1 + P2 + P4 + P3-harness **complete — 27/27 tests green.** Next: run P3 on a rented A100-80GB.
 - **North star (restated):** know exactly what you can run before you rent a GPU — predicted-vs-actual
   OOM within ≤10% (stretch ≤5%) for the 5 v0.1 models (4 GQA + 1 MLA) on one A100-80GB.
 
@@ -50,6 +51,14 @@ rented A100-80GB + HF token (human action). P1+P2+P4 done; CLI + web both ride t
   in python3 matches the CLI exactly (8B/A100-80 → 109/54/27/13/3). In-browser Pyodide run is standard
   but not E2E-tested here (needs a browser + CDN). Design: `docs/web.md`.
 
+## Done — P3 harness (2026-06-01)
+- `validate/`: `parse.py` (log/budget/fit, pure), `config.py` (HF ids + vLLM kwargs; 70B→AWQ-int4),
+  `run.py` (lazy-vLLM: measures `# GPU blocks` per model → `results.json`), `calibrate.py` (fits
+  activation+overhead, prints predicted-vs-measured table + suggested core defaults). `validate/README.md`.
+- GPU code isolated to `run.py` (lazy import); pure logic unit-tested off-GPU — `tests/test_validate.py`
+  (6 tests). Calibrate demonstrated end-to-end on synthetic data. **Ready to run; not yet run** (needs GPU).
+- ⚠️ 70B fp16 can't load on one 80GB GPU → validated AWQ-int4; confirm repo during infra setup.
+
 ## Decisions locked (2026-06-01)
 1. **Name:** `vramcheck` (re-verify PyPI / domain / trademark before publish).
 2. **Web:** Pyodide single-source on GitHub Pages.
@@ -60,10 +69,11 @@ rented A100-80GB + HF token (human action). P1+P2+P4 done; CLI + web both ride t
 - ✅ **P1 done:** core library + 12 unit tests green.
 - ✅ **P2 done:** argparse CLI (verdict / max-batch / sweep / --json) + 9 tests; `docs/cli.md`.
 - ✅ **P4 done:** Pyodide web one-pager reusing `core/`; `docs/web.md`. (Enable GitHub Pages → main/root to publish.)
-- **P3 (MVP accuracy gate, needs human):** rent A100-80GB + HF token; vLLM `# GPU blocks` + OOM
-  search; fill §6 table for all 5 models; calibrate activation `k` + overhead. Gate ≤10% (stretch ≤5%).
+- **P3 harness ✅ built (`validate/`); RUN pending infra:** rent A100-80GB + HF token →
+  `python -m validate.run` → `python -m validate.calibrate` → set fitted defaults in core → fill §6 table.
+  Gate ≤10% (stretch ≤5%). 70B validated AWQ-int4 (single-GPU).
 - **P5:** publish to PyPI + broadcast.
 
 ## Repo state
-- Working state: P1 core + P2 CLI + P4 web; 21/21 tests green. Docs spine under `docs/`. Git: P4 checkpoint pushed.
+- Working state: P1 core + P2 CLI + P4 web + P3 harness; 27/27 tests green. Docs under `docs/`. Git: P3-harness pushed.
 - Remote: `github.com/ayuan153/canirun`. Package / CLI / domain = `vramcheck`.
