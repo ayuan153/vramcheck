@@ -2,13 +2,13 @@
 
 > Update this **every** session (END ritual). One clear `NEXT:` line at the top.
 
-**NEXT:** **P3 — validation (MVP accuracy gate)** needs a rented A100-80GB + HF token (human action).
-**P4 — web** (Pyodide one-pager) can proceed independently since it just wraps `core/`. P1+P2 done; 21/21 tests green.
+**NEXT:** **P3 — validation (MVP accuracy gate)** is the remaining blocker to launch and needs a
+rented A100-80GB + HF token (human action). P1+P2+P4 done; CLI + web both ride the same `core/` (21/21 tests green).
 
 ---
 
 ## Where we are
-- **Phase:** P1 + P2 **complete — 21/21 tests green.** Next: P3 (validation, needs GPU) or P4 (web).
+- **Phase:** P1 + P2 + P4 **complete — 21/21 tests green; web verified (served files + math mirror).** Next: P3 (validation, needs GPU).
 - **North star (restated):** know exactly what you can run before you rent a GPU — predicted-vs-actual
   OOM within ≤10% (stretch ≤5%) for the 5 v0.1 models (4 GQA + 1 MLA) on one A100-80GB.
 
@@ -42,6 +42,14 @@
   `--json` for all. Zero runtime deps (Rich/Typer deferred — see DECISIONS).
 - `tests/test_cli.py`: 9 smoke tests; suite now **21/21 green**. Design: `docs/cli.md`.
 
+## Done — P4 web tool (2026-06-01)
+- `web/index.html`: static one-page tool that loads the **real** `vramcheck/core/*.py` into Pyodide
+  (in-browser Python) and renders the breakdown + capacity sweep. Single source of truth — no JS
+  port, no server, no build. Dropdowns populated from `core.MODELS` / `core.GPUS`.
+- Verified: page + all core files serve 200 over http.server; the page's `compute()` driver mirrored
+  in python3 matches the CLI exactly (8B/A100-80 → 109/54/27/13/3). In-browser Pyodide run is standard
+  but not E2E-tested here (needs a browser + CDN). Design: `docs/web.md`.
+
 ## Decisions locked (2026-06-01)
 1. **Name:** `vramcheck` (re-verify PyPI / domain / trademark before publish).
 2. **Web:** Pyodide single-source on GitHub Pages.
@@ -51,10 +59,11 @@
 ## Next actions (granular phases — see DESIGN §11)
 - ✅ **P1 done:** core library + 12 unit tests green.
 - ✅ **P2 done:** argparse CLI (verdict / max-batch / sweep / --json) + 9 tests; `docs/cli.md`.
+- ✅ **P4 done:** Pyodide web one-pager reusing `core/`; `docs/web.md`. (Enable GitHub Pages → main/root to publish.)
 - **P3 (MVP accuracy gate, needs human):** rent A100-80GB + HF token; vLLM `# GPU blocks` + OOM
   search; fill §6 table for all 5 models; calibrate activation `k` + overhead. Gate ≤10% (stretch ≤5%).
-- **P4 (can run now):** Pyodide web one-pager on GitHub Pages reusing `core/`. **P5:** publish + broadcast.
+- **P5:** publish to PyPI + broadcast.
 
 ## Repo state
-- Working state: P1 core + P2 CLI, 21/21 tests green. Docs spine under `docs/`. Git: P2 checkpoint pushed.
+- Working state: P1 core + P2 CLI + P4 web; 21/21 tests green. Docs spine under `docs/`. Git: P4 checkpoint pushed.
 - Remote: `github.com/ayuan153/canirun`. Package / CLI / domain = `vramcheck`.

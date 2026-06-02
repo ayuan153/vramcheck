@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>vramcheck — know what you can run before you rent a GPU</title>
+<style>
+  :root { color-scheme: light dark; }
+  body { font: 15px/1.5 system-ui, sans-serif; max-width: 760px; margin: 2rem auto; padding: 0 1rem; }
+  h1 { margin-bottom: .2rem; }
+  p.sub { margin-top: 0; opacity: .8; }
+  fieldset { border: 1px solid #8884; border-radius: 8px; display: grid;
+             grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: .75rem 1rem; }
+  label { display: flex; flex-direction: column; font-size: 13px; gap: .25rem; }
+  select, input { padding: .4rem; font: inherit; }
+  #status { margin: 1rem 0; opacity: .8; }
+  #header { font-weight: 600; margin-top: 1.5rem; }
+  #breakdown { opacity: .85; font-size: 13px; margin: .25rem 0 1rem; }
+  table { border-collapse: collapse; width: 100%; max-width: 360px; }
+  th, td { text-align: right; padding: .35rem .75rem; border-bottom: 1px solid #8883; }
+  th { font-size: 13px; }
+  td.oom { color: #c0392b; font-weight: 600; }
+  .note { font-size: 12px; opacity: .7; margin-top: 1.5rem; }
+</style>
+</head>
+<body>
+  <h1>vramcheck</h1>
+  <p class="sub">Know exactly what you can run before you rent a GPU. Runs the real
+     <code>vramcheck.core</code> in your browser — same math as the CLI.</p>
+
+  <form id="form" aria-label="capacity planner inputs">
+    <fieldset>
+      <legend>inputs</legend>
+      <label>model<select id="model" disabled></select></label>
+      <label>GPU<select id="gpu" disabled></select></label>
+      <label>weight dtype
+        <select id="weight"><option>fp16</option><option>bf16</option><option>fp8</option><option>int4</option></select>
+      </label>
+      <label>KV dtype
+        <select id="kv"><option>fp16</option><option>bf16</option><option>fp8</option></select>
+      </label>
+      <label>gpu_memory_utilization<input id="util" type="number" step="0.05" min="0.1" max="1" value="0.90" /></label>
+      <label>context lengths<input id="contexts" type="text" value="4096,8192,16384,32768,131072" /></label>
+    </fieldset>
+  </form>
+
+  <p id="status" role="status">Loading Pyodide + vramcheck core…</p>
+
+  <div id="out" hidden>
+    <div id="header"></div>
+    <div id="breakdown"></div>
+    <table>
+      <thead><tr><th scope="col">context</th><th scope="col">max batch</th></tr></thead>
+      <tbody id="rows"></tbody>
+    </table>
+  </div>
+
+  <p class="note">activation (~10% of weights) and CUDA/framework overhead (~1 GiB) are
+     <strong>approximate placeholders</strong> pending real-vLLM calibration (see docs/DESIGN.md §3, §6).</p>
+
+  <script type="module">
+    // Single source of truth: load the actual package files from the repo into Pyodide.
+    const PKG_FILES = ["__init__.py", "core/__init__.py", "core/models.py",
+                       "core/gpus.py", "core/kv.py", "core/memory.py"];
+    const $ = (id) => document.getElementById(id);
+
+    async function boot() {
+      const { loadPyodide } = await import("https://cdn.jsdelivr.net/pyodide/v0.26.2/full/pyodide.mjs");
+      const pyodide = await loadPyodide();
+      for (const f of PKG_FILES) {
+        const src = await (await fetch(`../vramcheck/${f}`)).text();
+        const path = `vramcheck/${f}`;
+        pyodide.FS.mkdirTree(path.slice(0, path.lastIndexOf("/")));
+        pyodide.FS.writeFile(path, src);
+      }
+      pyodide.runPython(`
+import sys, json
+sys.path.insert(0, ".")
+import vramcheck.core as core
+
+def options():
+    return json.dumps({"models": {k: m.name for k, m in core.MODELS.items()},
+                       "gpus": {k: g.name for k, g in core.GPUS.items()}})
+
+def compute(model, gpu, weight_dtype, kv_dtype, util, contexts):
+    cfg, g = core.MODELS[model], core.GPUS[gpu]
+    u = None if util in ("", None) else float(util)
+    ctxs = [int(x) for x in str(contexts).split(",") if x.strip()]
+    kw = dict(weight_dtype=weight_dtype, kv_dtype=kv_dtype, util=u)
+    p = core.plan(g, cfg, ctxs[0], **kw)
+    gib = lambda b: b / core.GiB
+    return json.dumps({
+        "header": f"{cfg.name} ({weight_dtype}) on {g.name} \u00b7 util={g.default_util if u is None else u:.2f}",
+        "weights": gib(p.weights_bytes), "activation": gib(p.activation_bytes),
+        "overhead": gib(p.overhead_bytes), "kv_budget": gib(p.kv_budget_bytes),
+        "sweep": [{"ctx": c, "max_batch": b} for c, b in core.sweep(g, cfg, ctxs, **kw)],
+    })
+      `);
+      return pyodide;
+    }
+
+    function fillSelect(sel, obj) {
+      sel.innerHTML = "";
+      for (const [k, name] of Object.entries(obj)) {
+        const o = document.createElement("option");
+        o.value = k; o.textContent = name; sel.appendChild(o);
+      }
+      sel.disabled = false;
+    }
+
+    function render(r) {
+      $("header").textContent = r.header;
+      $("breakdown").textContent =
+        `weights ${r.weights.toFixed(1)} GiB · activation ~${r.activation.toFixed(1)} GiB · ` +
+        `overhead ~${r.overhead.toFixed(1)} GiB · KV budget ${r.kv_budget.toFixed(1)} GiB`;
+      $("rows").innerHTML = "";
+      for (const { ctx, max_batch } of r.sweep) {
+        const tr = document.createElement("tr");
+        const oom = max_batch === 0;
+        tr.innerHTML = `<td>${ctx.toLocaleString()}</td>` +
+          `<td class="${oom ? "oom" : ""}">${oom ? "OOM" : max_batch.toLocaleString()}</td>`;
+        $("rows").appendChild(tr);
+      }
+      $("out").hidden = false;
+    }
+
+    const pyodide = await boot();
+    const opts = JSON.parse(pyodide.globals.get("options")());
+    fillSelect($("model"), opts.models);
+    fillSelect($("gpu"), opts.gpus);
+    $("gpu").value = "a100-80gb" in opts.gpus ? "a100-80gb" : $("gpu").value;
+
+    const run = () => {
+      const r = JSON.parse(pyodide.globals.get("compute")(
+        $("model").value, $("gpu").value, $("weight").value, $("kv").value,
+        $("util").value, $("contexts").value));
+      render(r);
+    };
+    $("form").addEventListener("input", run);
+    $("status").hidden = true;
+    run();
+  </script>
+</body>
+</html>

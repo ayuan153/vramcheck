@@ -79,3 +79,9 @@
 - **Alternatives:** Typer + Rich now (2 deps + install/network friction, not testable in a bare env); argparse + Rich (1 cosmetic dep).
 - **Why:** adoption-first — `pip install vramcheck` pulls zero transitive deps and the CLI runs/tests anywhere; the product is the accurate number + table, not box-drawing. Presentation-only, reversible.
 - **Vision impact:** none (serves adoption + standalone-first).
+
+## 2026-06-01 — P4 web tool loads the real core via Pyodide
+- **Decision:** The one-page web tool fetches the actual `vramcheck/core/*.py` files into Pyodide's FS and imports them, rather than porting math to JS or standing up an API. Hosted as static files on GitHub Pages (serve repo root so `web/` can fetch `../vramcheck/`).
+- **Alternatives:** JS reimplementation (divergence risk); micropip-install a published wheel (needs publish + build); serverless API (cost + infra).
+- **Why:** guarantees the web numbers equal the CLI numbers (single source of truth) with zero backend.
+- **Vision impact:** none (implements locked DESIGN §7).
