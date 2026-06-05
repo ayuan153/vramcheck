@@ -25,6 +25,27 @@ uses those **measured** values directly instead of approximate `num_params`, and
 - `trust_remote_code` is already set for DeepSeek-V2-Lite in `config.py`.
 
 ## Run
+
+### Plug-and-play (one command on the pod)
+The only "key" you need is a **Hugging Face token** (for gated Llama). Drop it in, then run one script:
+
+```sh
+# on the rented GPU pod, from the repo root:
+echo hf_xxx > validate/.hf_token        # gitignored — or: export HF_TOKEN=hf_xxx
+bash validate/runpod.sh
+```
+`validate/runpod.sh` locates/clones the repo, installs vLLM, runs a **cheap smoke test on the
+smallest model first** (catches a bad token or a vLLM log-format change for ~$0.05 before the
+~100GB downloads), then runs the full 5-model measurement and prints the calibration. It
+**provisions/terminates nothing** — you rent and (afterwards) delete the pod yourself. Send back
+`validate/results.json` + `validate/calibration-report.txt`.
+
+Bootstrap from a bare pod (no clone yet):
+```sh
+curl -fsSL https://raw.githubusercontent.com/ayuan153/canirun/main/validate/runpod.sh | HF_TOKEN=hf_xxx bash
+```
+
+### Manual (equivalent steps)
 ```sh
 # 1) measure KV budgets (writes validate/results.json, checkpointing after each model)
 python -m validate.run --util 0.92 --out validate/results.json

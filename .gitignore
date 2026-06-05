@@ -6,3 +6,7 @@ dist/
 build/
 *.egg-info/
 packageInfo
+# P3 validation: never commit the HF token; transient run artifacts
+validate/.hf_token
+validate/results-smoke.json
+validate/calibration-report.txt

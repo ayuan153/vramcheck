@@ -2,9 +2,10 @@
 
 > Update this **every** session (END ritual). One clear `NEXT:` line at the top.
 
-**NEXT:** **P3 — run the validation harness** (built + ready in `validate/`, updated for vLLM v0.22).
-Needs the infra: rent A100-80GB + HF token (walk through together), then `python -m validate.run` →
-`python -m validate.calibrate`. P1+P2+P4 + P3-harness done; 29/29 tests green.
+**NEXT:** **P3 — run the validation harness.** Now fully plug-and-play: rent a single A100-80GB
+(RunPod Community ~$1.49/hr), drop your HF token in `validate/.hf_token` (or `export HF_TOKEN`),
+then `bash validate/runpod.sh` (smoke-gates on the 8B, then full 5-model run + calibrate). Send back
+`validate/results.json` + `validate/calibration-report.txt`. P1+P2+P4 + P3-harness done; 29/29 green.
 
 ---
 
@@ -82,9 +83,9 @@ Needs the infra: rent A100-80GB + HF token (walk through together), then `python
 - ✅ **P1 done:** core library + 12 unit tests green.
 - ✅ **P2 done:** argparse CLI (verdict / max-batch / sweep / --json) + 9 tests; `docs/cli.md`.
 - ✅ **P4 done:** Pyodide web one-pager reusing `core/`; `docs/web.md`. (Enable GitHub Pages → main/root to publish.)
-- **P3 harness ✅ built (`validate/`); RUN pending infra:** rent A100-80GB + HF token →
-  `python -m validate.run` → `python -m validate.calibrate` → set fitted defaults in core → fill §6 table.
-  Gate ≤10% (stretch ≤5%). 70B validated AWQ-int4 (single-GPU).
+- **P3 harness ✅ built (`validate/`, one-command `runpod.sh`); RUN pending infra:** rent A100-80GB,
+  drop HF token, `bash validate/runpod.sh` → set fitted defaults + num_params in core → fill §6 table.
+  Gate ≤10% (stretch ≤5%). 70B + Qwen-32B validated AWQ-int4 (single-GPU).
 - **P5:** publish to PyPI + broadcast.
 
 ## Repo state
