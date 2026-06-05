@@ -44,7 +44,8 @@ def analyze(rows: list[dict]):
         core_weight = core.weight_bytes(cfg, r["weight_dtype"])
         weights = r["weight_gib"] * core.GiB if r.get("weight_gib") else core_weight
         if r.get("activation_gib") is not None and r.get("nontorch_gib") is not None:
-            nonkv = (r["activation_gib"] + r["nontorch_gib"]) * core.GiB  # measured directly
+            nonkv = (r["activation_gib"] + r["nontorch_gib"]
+                     + (r.get("cudagraph_gib") or 0.0)) * core.GiB        # measured directly
         else:
             nonkv = usable - weights - measured_kv                        # inferred
         samples.append((weights, nonkv))

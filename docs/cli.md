@@ -37,7 +37,7 @@ Unknown keys print the valid set and exit non-zero.
 | `--contexts a,b,c` | `4096,8192,16384,32768,131072` | Context lengths for the sweep table. |
 | `--weight-dtype` | `fp16` | `fp16\|bf16\|fp8\|int4` — weight precision. |
 | `--kv-dtype` | `fp16` | `fp16\|bf16\|fp8` — KV-cache precision. |
-| `--util F` | GPU default (0.90) | `gpu_memory_utilization`. |
+| `--util F` | GPU default (0.92) | `gpu_memory_utilization`. |
 | `--json` | off | Machine-readable output (for scripting / the v2 workflow integration). |
 
 ## Output modes (precedence)
@@ -58,14 +58,14 @@ breakdown (weights / activation / overhead / KV budget, in GiB). Activation + ov
 
 ```
 $ vramcheck llama-3.1-8b a100-80gb
-Llama-3.1-8B-Instruct (fp16) on A100-80GB · util=0.90
-weights 15.0 GiB · activation ~1.5 GiB · overhead ~1.0 GiB · KV budget 54.5 GiB   (~approx: activation, overhead — P3)
+Llama-3.1-8B-Instruct (fp16) on A100-80GB · util=0.92
+weights 15.0 GiB · activation ~1.5 GiB · overhead ~1.0 GiB · KV budget 56.1 GiB   (~approx: activation, overhead — P3)
 
   context    max batch
-    4,096          109
-    8,192           54
-   16,384           27
-   32,768           13
+    4,096          112
+    8,192           56
+   16,384           28
+   32,768           14
   131,072            3
 ```
 

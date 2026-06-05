@@ -79,7 +79,7 @@ ask: at a given context length, how many concurrent sequences (batch) fit before
 
 ### 3.1 Total budget
 ```
-usable_VRAM      = gpu_total_VRAM × gpu_memory_utilization        (vLLM default 0.90)
+usable_VRAM      = gpu_total_VRAM × gpu_memory_utilization        (vLLM v0.22 default 0.92)
 KV_budget        = usable_VRAM − model_weights − activation_peak − overhead
 max_batch(ctx)   = floor( KV_budget / kv_bytes_per_seq(ctx) )
 OOM_line(batch)  = the (ctx, batch) pair where KV_bytes_per_seq × batch first exceeds KV_budget
@@ -200,7 +200,7 @@ non-torch / KV-reserved values directly (not approximate `num_params`) and emits
   4. **Capacity sweep table:** rows = context lengths, cols = GPUs (or batch), cells = max
      concurrent sequences. This table is the headline artifact.
 - **Surfaces:** `pip`-installable CLI (single source of truth) **and** a one-page hosted web tool.
-- **Engine semantics:** vLLM (PagedAttention, `gpu_memory_utilization=0.90`, block_size=16).
+- **Engine semantics:** vLLM (PagedAttention, `gpu_memory_utilization=0.92`, block_size=16).
 
 **Explicitly OUT of v0.1:**
 - Multi-GPU / tensor & pipeline parallelism (TP/PP) and NCCL buffer modeling.
@@ -296,7 +296,7 @@ This is the v2 north star; v0.1 deliberately ships none of it.
 
 **Lead screenshot (the thing that sells it):** the CLI printing a clean Rich table —
 ```
-Llama-3.1-70B (fp16) on A100-80GB · vLLM · util=0.90
+Llama-3.1-70B (fp16) on A100-80GB · vLLM · util=0.92
 ┌──────────┬──────────────┬───────────────┐
 │ Context  │ Max batch    │ KV / Weights / Act / OH │
 ├──────────┼──────────────┼───────────────┤

@@ -1,7 +1,7 @@
 """GPU VRAM table for the v0.1 supported set.
 
 `memory_gib` is nominal (binary GiB). vLLM reserves `default_util` of it for
-model + KV (default 0.90). Nominal vs. truly-usable bytes is a known error source
+model + KV (default 0.92 in vLLM v0.22). Nominal vs. truly-usable bytes is a known error source
 (DESIGN.md §3.9), reconciled against torch.cuda.mem_get_info() in P3.
 """
 
@@ -14,7 +14,7 @@ from dataclasses import dataclass
 class GPUSpec:
     name: str
     memory_gib: float
-    default_util: float = 0.90
+    default_util: float = 0.92
 
 
 GPUS: dict[str, GPUSpec] = {

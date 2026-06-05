@@ -2,14 +2,14 @@
 
 > Update this **every** session (END ritual). One clear `NEXT:` line at the top.
 
-**NEXT:** **P3 — run the validation harness** (built + ready in `validate/`). Needs the infra:
-rent A100-80GB + HF token (we'll walk through together), then `python -m validate.run` →
-`python -m validate.calibrate`. P1+P2+P4 + P3-harness done; 28/28 tests green.
+**NEXT:** **P3 — run the validation harness** (built + ready in `validate/`, updated for vLLM v0.22).
+Needs the infra: rent A100-80GB + HF token (walk through together), then `python -m validate.run` →
+`python -m validate.calibrate`. P1+P2+P4 + P3-harness done; 29/29 tests green.
 
 ---
 
 ## Where we are
-- **Phase:** P1 + P2 + P4 + P3-harness **complete — 28/28 tests green.** Next: run P3 on a rented A100-80GB.
+- **Phase:** P1 + P2 + P4 + P3-harness **complete — 29/29 tests green; harness updated for vLLM v0.22.** Next: run P3 on a rented A100-80GB.
 - **North star (restated):** know exactly what you can run before you rent a GPU — predicted-vs-actual
   OOM within ≤10% (stretch ≤5%) for the 5 v0.1 models (4 GQA + 1 MLA) on one A100-80GB.
 
@@ -61,6 +61,17 @@ rent A100-80GB + HF token (we'll walk through together), then `python -m validat
   (7 tests). Calibrate demonstrated end-to-end on synthetic data. **Ready to run; not yet run** (needs GPU).
 - ⚠️ 70B fp16 can't load on one 80GB GPU → validated AWQ-int4; confirm repo during infra setup.
 
+## Done — vLLM v0.22 pre-flight update (2026-06-04)
+- Pre-flight research (before paid GPU): vLLM is now **v0.22 (V1 engine)** — `# GPU blocks` log is gone
+  (now `GPU KV cache size: N tokens` / `Available KV cache memory: X GiB`), the memory breakdown is
+  reworded + DEBUG-level, the num_gpu_blocks API path moved, and **default `gpu_memory_utilization`
+  0.90 → 0.92**.
+- Updated `validate/parse.py` (new regexes + `parse_cudagraph_gib`), `validate/run.py` (new API path,
+  DEBUG log capture, util 0.92), `validate/calibrate.py` (CUDAGraph folded into overhead),
+  `core/gpus.py` (`default_util` = 0.92). Switched Qwen2.5-32B target → `Qwen/Qwen2.5-32B-Instruct-AWQ`
+  (bf16 ~65 GB leaves no KV headroom on one 80GB GPU).
+- All 5 HF repo ids + single-80GB loadability verified 2026-06-04. Suite **29/29 green**; docs synced (util 0.92).
+
 ## Decisions locked (2026-06-01)
 1. **Name:** `vramcheck` (re-verify PyPI / domain / trademark before publish).
 2. **Web:** Pyodide single-source on GitHub Pages.
@@ -77,5 +88,5 @@ rent A100-80GB + HF token (we'll walk through together), then `python -m validat
 - **P5:** publish to PyPI + broadcast.
 
 ## Repo state
-- Working state: P1 core + P2 CLI + P4 web + P3 harness; 28/28 tests green. Docs under `docs/`. Git: P3-harness pushed.
+- Working state: P1 core + P2 CLI + P4 web + P3 harness (vLLM v0.22-ready); 29/29 tests green. Docs under `docs/`.
 - Remote: `github.com/ayuan153/canirun`. Package / CLI / domain = `vramcheck`.

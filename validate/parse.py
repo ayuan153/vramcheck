@@ -15,8 +15,8 @@ _BLOCK_PATTERNS = [
     re.compile(r"GPU blocks:\s*([\d,]+)"),
 ]
 _TOKEN_PATTERNS = [
+    # vLLM V1 (v0.22): "GPU KV cache size: 12,345 tokens" = total KV capacity in tokens.
     re.compile(r"GPU KV cache size:\s*([\d,]+)\s*tokens"),
-    re.compile(r"Maximum concurrency.*?for\s*([\d,]+)\s*tokens", re.IGNORECASE),
 ]
 
 
@@ -45,10 +45,28 @@ def kv_capacity_tokens(num_gpu_blocks: int, block_size: int = 16) -> int:
 # vLLM's startup "Memory profiling results" line reports these directly (wording varies by
 # version, so the regexes are tolerant). Each returns GiB or None when absent.
 _F = r"([\d.]+)"
-_WEIGHT_PATTERNS = [re.compile(r"model weights take\s*" + _F + r"\s*GiB", re.IGNORECASE)]
-_ACT_PATTERNS = [re.compile(r"activation peak memory takes\s*" + _F + r"\s*GiB", re.IGNORECASE)]
-_NONTORCH_PATTERNS = [re.compile(r"non[_-]?torch[\w ]{0,16}?takes\s*" + _F + r"\s*GiB", re.IGNORECASE)]
-_KVRES_PATTERNS = [re.compile(r"reserved for KV Cache is\s*" + _F + r"\s*GiB", re.IGNORECASE)]
+# Cover both the older "Memory profiling results" wording and vLLM v0.22 (V1 engine), which logs
+# e.g. "...14.96 GiB for weight, 1.23 GiB for peak activation, 0.45 GiB for non-torch memory, and
+# 2.10 GiB for CUDAGraph memory" (DEBUG) and "Available KV cache memory: X GiB" (INFO).
+_WEIGHT_PATTERNS = [
+    re.compile(r"model weights take\s*" + _F + r"\s*GiB", re.IGNORECASE),
+    re.compile(_F + r"\s*GiB for weight", re.IGNORECASE),
+]
+_ACT_PATTERNS = [
+    re.compile(r"activation peak memory takes\s*" + _F + r"\s*GiB", re.IGNORECASE),
+    re.compile(_F + r"\s*GiB for peak activation", re.IGNORECASE),
+]
+_NONTORCH_PATTERNS = [
+    re.compile(r"non[_-]?torch[\w ]{0,16}?takes\s*" + _F + r"\s*GiB", re.IGNORECASE),
+    re.compile(_F + r"\s*GiB for non-torch memory", re.IGNORECASE),
+]
+_CUDAGRAPH_PATTERNS = [
+    re.compile(_F + r"\s*GiB for CUDAGraph memory", re.IGNORECASE),
+]
+_KVRES_PATTERNS = [
+    re.compile(r"Available KV cache memory:\s*" + _F + r"\s*GiB", re.IGNORECASE),  # v0.22 (INFO)
+    re.compile(r"reserved for KV Cache is\s*" + _F + r"\s*GiB", re.IGNORECASE),     # older
+]
 
 
 def _first_float(patterns, text: str) -> Optional[float]:
@@ -71,7 +89,12 @@ def parse_nontorch_gib(text: str) -> Optional[float]:
     return _first_float(_NONTORCH_PATTERNS, text)
 
 
+def parse_cudagraph_gib(text: str) -> Optional[float]:
+    return _first_float(_CUDAGRAPH_PATTERNS, text)
+
+
 def parse_kv_reserved_gib(text: str) -> Optional[float]:
+    """KV budget in GiB — vLLM v0.22 'Available KV cache memory: X GiB' (or older wording)."""
     return _first_float(_KVRES_PATTERNS, text)
 
 

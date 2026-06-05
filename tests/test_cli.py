@@ -44,7 +44,8 @@ class TestCLI(unittest.TestCase):
     def test_max_batch_mode(self):
         rc, out, _ = run(["llama-3.1-8b", "a100-80gb", "--ctx", "8192", "--json"])
         self.assertEqual(rc, 0)
-        self.assertEqual(json.loads(out)["max_batch"], 54)
+        # default util is now 0.92 (vLLM v0.22): budget ~60.3 GiB / 1 GiB-per-seq -> 56
+        self.assertEqual(json.loads(out)["max_batch"], 56)
 
     def test_model_too_big_is_oom(self):
         _, out, _ = run(["llama-3.1-70b", "a100-80gb", "--ctx", "8192", "--json"])

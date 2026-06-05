@@ -7,6 +7,7 @@ from validate.parse import (
     parse_gpu_blocks, parse_kv_cache_tokens, kv_capacity_tokens,
     error_pct, fit_activation_overhead,
     parse_weight_gib, parse_activation_gib, parse_nontorch_gib, parse_kv_reserved_gib,
+    parse_cudagraph_gib,
 )
 from vramcheck import core
 
@@ -36,6 +37,18 @@ class TestParse(unittest.TestCase):
         self.assertAlmostEqual(parse_nontorch_gib(line), 0.12)
         self.assertAlmostEqual(parse_kv_reserved_gib(line), 56.34)
         self.assertIsNone(parse_weight_gib("nothing here"))
+
+    def test_parse_vllm_v022_fields(self):
+        # v0.22 V1 engine: KV budget at INFO; per-component breakdown at DEBUG.
+        info = "Available KV cache memory: 35.42 GiB ... GPU KV cache size: 1,234,560 tokens"
+        debug = ("Actual usage is 14.96 GiB for weight, 1.23 GiB for peak activation, "
+                 "0.45 GiB for non-torch memory, and 2.10 GiB for CUDAGraph memory.")
+        self.assertEqual(parse_kv_cache_tokens(info), 1234560)
+        self.assertAlmostEqual(parse_kv_reserved_gib(info), 35.42)
+        self.assertAlmostEqual(parse_weight_gib(debug), 14.96)
+        self.assertAlmostEqual(parse_activation_gib(debug), 1.23)
+        self.assertAlmostEqual(parse_nontorch_gib(debug), 0.45)
+        self.assertAlmostEqual(parse_cudagraph_gib(debug), 2.10)
 
 
 class TestFit(unittest.TestCase):

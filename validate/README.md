@@ -27,7 +27,7 @@ uses those **measured** values directly instead of approximate `num_params`, and
 ## Run
 ```sh
 # 1) measure KV budgets (writes validate/results.json, checkpointing after each model)
-python -m validate.run --util 0.90 --out validate/results.json
+python -m validate.run --util 0.92 --out validate/results.json
 #    subset while iterating:
 python -m validate.run --models llama-3.1-8b,deepseek-v2-lite
 

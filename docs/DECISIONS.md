@@ -103,3 +103,9 @@
 - **Alternatives:** keep using approximate vendored `num_params` and infer everything by subtraction (the approximate weights leak into the fitted activation/overhead); fetch exact param counts from HF up front (more work, still not the resident-memory truth incl. quant overhead).
 - **Why:** the one non-by-design placeholder left was approximate `num_params`; using vLLM's own measured numbers removes it from the accuracy path and self-corrects the vendored configs.
 - **Vision impact:** none (strengthens the north-star proof; correctness is the credibility).
+
+## 2026-06-04 — Harness + core updated for vLLM v0.22 (V1 engine) before the paid run
+- **Decision:** Pre-flight-verify the GPU stack before renting. vLLM v0.22 (V1 engine) changed the KV-budget log lines (`# GPU blocks` → `GPU KV cache size` / `Available KV cache memory`), moved the `num_gpu_blocks` API path, logs the per-component memory breakdown (weight / activation / non-torch / **CUDAGraph**) at DEBUG, and changed default `gpu_memory_utilization` 0.90 → 0.92. Updated parse/run/calibrate + `core.GPUS.default_util=0.92`; switched Qwen2.5-32B → official AWQ-int4 (bf16 won't fit one 80GB GPU with KV headroom).
+- **Alternatives:** run as-is and debug on the clock (wastes GPU $); pin an old vLLM (diverges from what users actually run today).
+- **Why:** the harness reads vLLM's own logs/API — a version drift would have silently failed mid-run. Cheap to fix off-GPU; keeps predictions matching the vLLM people actually run.
+- **Vision impact:** none (keeps the accuracy gate honest against current reality).

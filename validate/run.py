@@ -4,12 +4,12 @@ Requires a GPU + `pip install vllm`. vLLM/torch are imported lazily inside funct
 module imports fine off-GPU (only `run`/`measure` need the GPU).
 
 Usage (on the rented A100-80GB):
-  python -m validate.run --util 0.90 --out validate/results.json
+  python -m validate.run --util 0.92 --out validate/results.json
   python -m validate.run --models llama-3.1-8b,deepseek-v2-lite   # subset
 
-Loading a model triggers vLLM's startup profiling, which fixes `# GPU blocks` (the KV budget).
-We read it from the engine API, falling back to parsing the captured startup log if the API
-attribute moved in this vLLM version.
+Loading a model triggers vLLM's startup profiling, which fixes the KV budget (logged in v0.22 as
+"GPU KV cache size: N tokens" / "Available KV cache memory: X GiB"). We read num_gpu_blocks from
+the engine API, falling back to parsing the captured startup log if the attribute moved.
 """
 
 from __future__ import annotations
@@ -22,14 +22,15 @@ import sys
 
 from . import config
 from .parse import (
-    parse_gpu_blocks, parse_kv_cache_tokens,
-    parse_weight_gib, parse_activation_gib, parse_nontorch_gib, parse_kv_reserved_gib,
+    parse_gpu_blocks, parse_kv_cache_tokens, parse_kv_reserved_gib,
+    parse_weight_gib, parse_activation_gib, parse_nontorch_gib, parse_cudagraph_gib,
 )
 
 
 def _num_gpu_blocks(llm) -> int | None:
     """vLLM's attribute path for num_gpu_blocks has moved across versions — try the known ones."""
     candidates = [
+        lambda: llm.llm_engine.vllm_config.cache_config.num_gpu_blocks,   # vLLM v0.22 (V1)
         lambda: llm.llm_engine.cache_config.num_gpu_blocks,
         lambda: llm.llm_engine.model_executor.cache_config.num_gpu_blocks,
         lambda: llm.llm_engine.scheduler[0].block_manager.num_total_gpu_blocks,
@@ -56,10 +57,15 @@ def measure(target: config.Target, util: float, max_model_len: int = 8192,
             block_size: int = 16) -> dict:
     from vllm import LLM  # lazy: only needed on the GPU box
 
-    # Capture vLLM's INFO logs so we can parse the KV budget if the API attribute moved.
+    # Capture vLLM logs at DEBUG — in v0.22 the per-component memory breakdown
+    # ("...GiB for weight / peak activation / non-torch / CUDAGraph memory") is logged at DEBUG.
+    # The KV budget ("GPU KV cache size", "Available KV cache memory") is INFO.
     buf = io.StringIO()
     handler = logging.StreamHandler(buf)
-    handler.setLevel(logging.INFO)
+    handler.setLevel(logging.DEBUG)
+    vllm_logger = logging.getLogger("vllm")
+    prev_level = vllm_logger.level
+    vllm_logger.setLevel(logging.DEBUG)
     for name in ("", "vllm"):
         logging.getLogger(name).addHandler(handler)
     try:
@@ -68,6 +74,7 @@ def measure(target: config.Target, util: float, max_model_len: int = 8192,
     finally:
         for name in ("", "vllm"):
             logging.getLogger(name).removeHandler(handler)
+        vllm_logger.setLevel(prev_level)
 
     log = buf.getvalue()
     blocks = _num_gpu_blocks(llm)
@@ -78,19 +85,20 @@ def measure(target: config.Target, util: float, max_model_len: int = 8192,
         "weight_dtype": target.weight_dtype, "kv_dtype": target.kv_dtype,
         "util": util, "block_size": block_size,
         "num_gpu_blocks": blocks,
-        "kv_tokens": parse_kv_cache_tokens(log),
+        "kv_tokens": parse_kv_cache_tokens(log),          # "GPU KV cache size: N tokens"
         # vLLM's own memory profiler (when present) — measured, not inferred:
+        "kv_reserved_gib": parse_kv_reserved_gib(log),    # "Available KV cache memory: X GiB"
         "weight_gib": parse_weight_gib(log),
         "activation_gib": parse_activation_gib(log),
         "nontorch_gib": parse_nontorch_gib(log),
-        "kv_reserved_gib": parse_kv_reserved_gib(log),
+        "cudagraph_gib": parse_cudagraph_gib(log),
         "total_gpu_memory_bytes": _total_gpu_memory_bytes(),
     }
 
 
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(prog="validate.run")
-    ap.add_argument("--util", type=float, default=0.90)
+    ap.add_argument("--util", type=float, default=0.92)
     ap.add_argument("--max-model-len", type=int, default=8192)
     ap.add_argument("--models", help="comma-separated core keys (default: all targets)")
     ap.add_argument("--out", default="validate/results.json")
